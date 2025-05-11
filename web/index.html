@@ -205,6 +205,8 @@
         <label for="gameSelect" style="color: #fff;">Active Game:</label>
         <select id="gameSelect"></select>
         <button id="deleteGameBtn">Delete Game</button>
+        <button id="installBtn" style="display: none; background-color: #FF9800;" onclick="installPWA()">Install
+            App</button>
     </div>
 
     <h1>Dart Counter</h1>
@@ -251,6 +253,44 @@
         <div class="history" id="history2"></div>
     </div>
 
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        // Add install prompt
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
+        });
+
+        // Function to show install prompt
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                        installBtn.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+    </script>
     <script defer src="main.js"></script>
 </body>
 
