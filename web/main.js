@@ -49,6 +49,14 @@ class Player {
         this.currentMultiplier = 1;
         this.updateDisplay();
         this.updateCurrentThrowDisplay();
+
+        // Check for victory
+        if (this.score === 0) {
+            // Get player number (1 or 2)
+            const playerNumber = this === window._player1 ? 1 : 2;
+            const playerName = document.getElementById(`player${playerNumber}Name`).textContent;
+            showVictoryModal(playerName, playerNumber);
+        }
     }
 
     undoLast() {
@@ -286,6 +294,8 @@ function createNewGameWithNames(gameName, player1Name, player2Name) {
         player2Name,
         player1: { score: 501, history: [] },
         player2: { score: 501, history: [] },
+        completed: false,
+        winner: null
     };
 }
 
@@ -357,7 +367,11 @@ function updateGameSelectUI() {
     games.forEach((g, i) => {
         const opt = document.createElement('option');
         opt.value = i;
-        opt.textContent = g.gameName || `Game ${i + 1}`;
+        let displayName = g.gameName || `Game ${i + 1}`;
+        if (g.completed && g.winner) {
+            displayName += ` (Won by ${g.winner === 1 ? g.player1Name : g.player2Name})`;
+        }
+        opt.textContent = displayName;
         if (i === currentGameIndex) opt.selected = true;
         select.appendChild(opt);
     });
@@ -504,4 +518,71 @@ document.addEventListener('DOMContentLoaded', () => {
     window.selectMultiplier = selectMultiplier;
 
     overlayDebugSVG();
-}); 
+});
+
+// Add victory modal function
+function showVictoryModal(playerName, playerNumber) {
+    // Create modal if it doesn't exist
+    let victoryModal = document.getElementById('victoryModal');
+    if (!victoryModal) {
+        victoryModal = document.createElement('div');
+        victoryModal.id = 'victoryModal';
+        victoryModal.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center;';
+
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = 'background:#fff; padding:32px 24px; border-radius:8px; max-width:90vw; width:350px; box-shadow:0 4px 16px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:16px; text-align:center;';
+
+        const title = document.createElement('h2');
+        title.id = 'victoryTitle';
+        title.style.margin = '0 0 16px 0';
+
+        const confetti = document.createElement('div');
+        confetti.style.cssText = 'margin:24px 0; font-size:64px; line-height:1;';
+        confetti.innerHTML = '🎯 🎉 🎯';
+
+        const message = document.createElement('p');
+        message.id = 'victoryMessage';
+        message.style.fontSize = '18px';
+
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.style.cssText = 'display:flex; gap:12px; justify-content:center; margin-top:16px;';
+
+        const newGameBtn = document.createElement('button');
+        newGameBtn.textContent = 'New Game';
+        newGameBtn.style.cssText = 'background:#4CAF50; color:#fff; padding:8px 16px;';
+        newGameBtn.onclick = function () {
+            victoryModal.style.display = 'none';
+            document.getElementById('newGameBtn').click();
+        };
+
+        const continueBtn = document.createElement('button');
+        continueBtn.textContent = 'Continue';
+        continueBtn.style.cssText = 'background:#2196F3; color:#fff; padding:8px 16px;';
+        continueBtn.onclick = function () {
+            victoryModal.style.display = 'none';
+        };
+
+        buttonsDiv.appendChild(newGameBtn);
+        buttonsDiv.appendChild(continueBtn);
+
+        modalContent.appendChild(title);
+        modalContent.appendChild(confetti);
+        modalContent.appendChild(message);
+        modalContent.appendChild(buttonsDiv);
+
+        victoryModal.appendChild(modalContent);
+        document.body.appendChild(victoryModal);
+    }
+
+    // Update modal content
+    document.getElementById('victoryTitle').textContent = 'Victory!';
+    document.getElementById('victoryMessage').textContent = `${playerName} has won the game!`;
+
+    // Show modal
+    victoryModal.style.display = 'flex';
+
+    // Update game state to mark this game as completed
+    games[currentGameIndex].completed = true;
+    games[currentGameIndex].winner = playerNumber;
+    saveGamesToStorage();
+} 
