@@ -429,7 +429,16 @@ function initPlayersAndUI(gameState) {
     // Patch Player's confirmThrow and undoLast to save state after each action
     const origConfirmThrow1 = _player1.confirmThrow.bind(_player1);
     _player1.confirmThrow = function () {
+        // Store score before the throw to check if it becomes 0
+        const previousScore = _player1.score;
         origConfirmThrow1();
+
+        // We need to manually check for victory here since the original confirmThrow's 
+        // victory check might not be triggered due to the patching
+        if (previousScore > 0 && _player1.score === 0) {
+            showVictoryModal(document.getElementById('player1Name').textContent, 1);
+        }
+
         saveCurrentGameState();
         saveGamesToStorage();
     };
@@ -441,7 +450,16 @@ function initPlayersAndUI(gameState) {
     };
     const origConfirmThrow2 = _player2.confirmThrow.bind(_player2);
     _player2.confirmThrow = function () {
+        // Store score before the throw to check if it becomes 0
+        const previousScore = _player2.score;
         origConfirmThrow2();
+
+        // We need to manually check for victory here since the original confirmThrow's 
+        // victory check might not be triggered due to the patching
+        if (previousScore > 0 && _player2.score === 0) {
+            showVictoryModal(document.getElementById('player2Name').textContent, 2);
+        }
+
         saveCurrentGameState();
         saveGamesToStorage();
     };
