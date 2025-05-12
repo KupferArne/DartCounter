@@ -325,6 +325,10 @@ function showNewGameModal(onCreate) {
     const gameNameInput = document.getElementById('modalGameName');
     const player1Input = document.getElementById('modalPlayer1Name');
     const player2Input = document.getElementById('modalPlayer2Name');
+    const startingScoreSelect = document.getElementById('modalStartingScore');
+    const legsToWinInput = document.getElementById('modalLegsToWin');
+    const setsToWinInput = document.getElementById('modalSetsToWin');
+    const checkoutTypeSelect = document.getElementById('modalCheckoutType');
     const errorDiv = document.getElementById('modalError');
     const cancelBtn = document.getElementById('modalCancelBtn');
     const createBtn = document.getElementById('modalCreateBtn');
@@ -333,6 +337,10 @@ function showNewGameModal(onCreate) {
     gameNameInput.value = '';
     player1Input.value = '';
     player2Input.value = '';
+    startingScoreSelect.value = '501';
+    legsToWinInput.value = '3';
+    setsToWinInput.value = '1';
+    checkoutTypeSelect.value = 'double';
     errorDiv.textContent = '';
     modal.style.display = 'flex';
 
@@ -349,12 +357,29 @@ function showNewGameModal(onCreate) {
         const gameName = gameNameInput.value.trim();
         const player1Name = player1Input.value.trim();
         const player2Name = player2Input.value.trim();
+        const startingScore = parseInt(startingScoreSelect.value);
+        const legsToWin = parseInt(legsToWinInput.value);
+        const setsToWin = parseInt(setsToWinInput.value);
+        const checkoutType = checkoutTypeSelect.value;
         if (!gameName || !player1Name || !player2Name) {
             errorDiv.textContent = 'All fields are required.';
             return;
         }
+        if (legsToWin < 1 || legsToWin > 9) {
+            errorDiv.textContent = 'Legs must be between 1 and 9.';
+            return;
+        }
+        if (setsToWin < 1 || setsToWin > 9) {
+            errorDiv.textContent = 'Sets must be between 1 and 9.';
+            return;
+        }
         closeModal();
-        onCreate(gameName, player1Name, player2Name);
+        onCreate(gameName, player1Name, player2Name, {
+            startingScore,
+            legsToWin,
+            setsToWin,
+            checkoutType
+        });
     };
 }
 
@@ -507,8 +532,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadGamesFromStorage();
     if (games.length === 0) {
         // Use modal for first game
-        showNewGameModal((gameName, player1Name, player2Name) => {
-            games.push(createNewGameWithNames(gameName, player1Name, player2Name));
+        showNewGameModal((gameName, player1Name, player2Name, settings) => {
+            games.push(createNewGameWithNames(gameName, player1Name, player2Name, settings));
             currentGameIndex = 0;
             updateGameSelectUI();
             initPlayersAndUI(games[currentGameIndex]);
@@ -520,8 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     newGameBtn.onclick = () => {
         saveCurrentGameState();
-        showNewGameModal((gameName, player1Name, player2Name) => {
-            games.push(createNewGameWithNames(gameName, player1Name, player2Name));
+        showNewGameModal((gameName, player1Name, player2Name, settings) => {
+            games.push(createNewGameWithNames(gameName, player1Name, player2Name, settings));
             currentGameIndex = games.length - 1;
             updateGameSelectUI();
             initPlayersAndUI(games[currentGameIndex]);

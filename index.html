@@ -278,6 +278,33 @@
                     style="width:100%; padding:8px; margin-top:4px;"></label>
             <label>Player 2 Name:<br><input id="modalPlayer2Name" type="text"
                     style="width:100%; padding:8px; margin-top:4px;"></label>
+            <div style="margin-bottom:8px;">
+                <label for="modalStartingScore">Starting Score:</label>
+                <select id="modalStartingScore" style="width:100%; padding:8px; margin-top:4px;">
+                    <option value="501">501</option>
+                    <option value="301">301</option>
+                    <option value="701">701</option>
+                    <option value="170">170 (Practice)</option>
+                </select>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label for="modalLegsToWin">Legs to Win Set:</label>
+                <input id="modalLegsToWin" type="number" min="1" max="9" value="3"
+                    style="width:100%; padding:8px; margin-top:4px;">
+            </div>
+            <div style="margin-bottom:8px;">
+                <label for="modalSetsToWin">Sets to Win Match:</label>
+                <input id="modalSetsToWin" type="number" min="1" max="9" value="1"
+                    style="width:100%; padding:8px; margin-top:4px;">
+            </div>
+            <div style="margin-bottom:8px;">
+                <label for="modalCheckoutType">Checkout Type:</label>
+                <select id="modalCheckoutType" style="width:100%; padding:8px; margin-top:4px;">
+                    <option value="double">Double Out (Standard)</option>
+                    <option value="master">Master Out (Double or Triple)</option>
+                    <option value="any">Any Out (Single, Double, or Triple)</option>
+                </select>
+            </div>
             <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
                 <button id="modalCancelBtn" style="background:#888; color:#fff;">Cancel</button>
                 <button id="modalCreateBtn" style="background:#4CAF50; color:#fff;">Create</button>
