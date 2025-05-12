@@ -286,14 +286,34 @@ function handleNumberClick(playerNum, number) {
 // Multi-game management
 let games = [];
 let currentGameIndex = 0;
+// Default game settings
+const defaultGameSettings = {
+    startingScore: 501,
+    legsToWin: 3,
+    setsToWin: 1,
+    checkoutType: 'double' // 'double', 'master', or 'any'
+};
 
-function createNewGameWithNames(gameName, player1Name, player2Name) {
+function createNewGameWithNames(gameName, player1Name, player2Name, settings = defaultGameSettings) {
     return {
         gameName,
         player1Name,
         player2Name,
-        player1: { score: 501, history: [] },
-        player2: { score: 501, history: [] },
+        player1: {
+            score: settings.startingScore,
+            history: [],
+            legsWon: 0,
+            setsWon: 0
+        },
+        player2: {
+            score: settings.startingScore,
+            history: [],
+            legsWon: 0,
+            setsWon: 0
+        },
+        settings: { ...settings },
+        currentLeg: 1,
+        currentSet: 1,
         completed: false,
         winner: null
     };
@@ -340,14 +360,14 @@ function showNewGameModal(onCreate) {
 
 function saveCurrentGameState() {
     if (games.length === 0) return;
-    games[currentGameIndex].player1 = {
-        score: window._player1.score,
-        history: [...window._player1.history],
-    };
-    games[currentGameIndex].player2 = {
-        score: window._player2.score,
-        history: [...window._player2.history],
-    };
+    const game = games[currentGameIndex];
+
+    // Save player stats
+    game.player1.score = window._player1.score;
+    game.player1.history = [...window._player1.history];
+
+    game.player2.score = window._player2.score;
+    game.player2.history = [...window._player2.history];
 }
 
 function loadGameState(index) {
@@ -418,6 +438,9 @@ function initPlayersAndUI(gameState) {
         _player2.history = [...gameState.player2.history];
         _player1.updateDisplay();
         _player2.updateDisplay();
+
+        // Update match info display
+        updateMatchInfo();
     }
     // Reset multipliers
     selectedMultiplier = { 1: 1, 2: 1 };
@@ -536,6 +559,33 @@ document.addEventListener('DOMContentLoaded', () => {
     window.selectMultiplier = selectMultiplier;
 
     overlayDebugSVG();
+
+    // Game settings button
+    const gameSettingsBtn = document.getElementById('gameSettingsBtn');
+    gameSettingsBtn.onclick = () => {
+        // Show settings modal with current game settings
+        const currentSettings = games[currentGameIndex].settings || defaultGameSettings;
+        showGameSettingsModal((newSettings) => {
+            // Apply settings to current game
+            const game = games[currentGameIndex];
+            game.settings = { ...newSettings };
+
+            // If starting score changed, reset player scores
+            if (newSettings.startingScore !== game.player1.score &&
+                (game.player1.history.length === 0 && game.player2.history.length === 0)) {
+                game.player1.score = newSettings.startingScore;
+                game.player2.score = newSettings.startingScore;
+                window._player1.score = newSettings.startingScore;
+                window._player2.score = newSettings.startingScore;
+                window._player1.updateDisplay();
+                window._player2.updateDisplay();
+            }
+
+            // Update match info display
+            updateMatchInfo();
+            saveGamesToStorage();
+        }, currentSettings);
+    };
 });
 
 // Add victory modal function
@@ -603,4 +653,80 @@ function showVictoryModal(playerName, playerNumber) {
     games[currentGameIndex].completed = true;
     games[currentGameIndex].winner = playerNumber;
     saveGamesToStorage();
+}
+
+// Add function to show settings modal
+function showGameSettingsModal(onSave, initialSettings = defaultGameSettings) {
+    const modal = document.getElementById('gameSettingsModal');
+    const startingScoreSelect = document.getElementById('startingScore');
+    const legsToWinInput = document.getElementById('legsToWin');
+    const setsToWinInput = document.getElementById('setsToWin');
+    const checkoutTypeSelect = document.getElementById('checkoutType');
+    const errorDiv = document.getElementById('settingsError');
+    const cancelBtn = document.getElementById('settingsCancelBtn');
+    const saveBtn = document.getElementById('settingsSaveBtn');
+
+    // Set initial values
+    startingScoreSelect.value = initialSettings.startingScore;
+    legsToWinInput.value = initialSettings.legsToWin;
+    setsToWinInput.value = initialSettings.setsToWin;
+    checkoutTypeSelect.value = initialSettings.checkoutType;
+    errorDiv.textContent = '';
+    modal.style.display = 'flex';
+
+    function closeModal() {
+        modal.style.display = 'none';
+        saveBtn.onclick = null;
+        cancelBtn.onclick = null;
+    }
+
+    cancelBtn.onclick = () => {
+        closeModal();
+    };
+
+    saveBtn.onclick = () => {
+        const settings = {
+            startingScore: parseInt(startingScoreSelect.value),
+            legsToWin: parseInt(legsToWinInput.value),
+            setsToWin: parseInt(setsToWinInput.value),
+            checkoutType: checkoutTypeSelect.value
+        };
+
+        // Validate inputs
+        if (settings.legsToWin < 1 || settings.legsToWin > 9) {
+            errorDiv.textContent = 'Legs must be between 1 and 9.';
+            return;
+        }
+        if (settings.setsToWin < 1 || settings.setsToWin > 9) {
+            errorDiv.textContent = 'Sets must be between 1 and 9.';
+            return;
+        }
+
+        closeModal();
+        onSave(settings);
+    };
+}
+
+// Update match info display
+function updateMatchInfo() {
+    const game = games[currentGameIndex];
+
+    document.getElementById('currentSet').textContent = game.currentSet;
+    document.getElementById('totalSets').textContent = game.settings.setsToWin;
+    document.getElementById('currentLeg').textContent = game.currentLeg;
+    document.getElementById('totalLegs').textContent = game.settings.legsToWin;
+
+    let checkoutText;
+    switch (game.settings.checkoutType) {
+        case 'double':
+            checkoutText = 'Double';
+            break;
+        case 'master':
+            checkoutText = 'Master (D/T)';
+            break;
+        case 'any':
+            checkoutText = 'Any';
+            break;
+    }
+    document.getElementById('checkoutMode').textContent = checkoutText;
 } 
