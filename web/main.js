@@ -279,18 +279,52 @@ function handleNumberClick(playerNum, number) {
 let games = [];
 let currentGameIndex = 0;
 
-function createNewGame() {
-    // Prompt for game and player names
-    const gameName = prompt('Enter a name for this game:', `Game ${games.length + 1}`) || `Game ${games.length + 1}`;
-    const player1Name = prompt('Enter Player 1 name:', 'Player 1') || 'Player 1';
-    const player2Name = prompt('Enter Player 2 name:', 'Player 2') || 'Player 2';
-    // Each game has its own player states and names
+function createNewGameWithNames(gameName, player1Name, player2Name) {
     return {
         gameName,
         player1Name,
         player2Name,
         player1: { score: 501, history: [] },
         player2: { score: 501, history: [] },
+    };
+}
+
+// Modal logic
+function showNewGameModal(onCreate) {
+    const modal = document.getElementById('newGameModal');
+    const gameNameInput = document.getElementById('modalGameName');
+    const player1Input = document.getElementById('modalPlayer1Name');
+    const player2Input = document.getElementById('modalPlayer2Name');
+    const errorDiv = document.getElementById('modalError');
+    const cancelBtn = document.getElementById('modalCancelBtn');
+    const createBtn = document.getElementById('modalCreateBtn');
+
+    // Reset fields
+    gameNameInput.value = '';
+    player1Input.value = '';
+    player2Input.value = '';
+    errorDiv.textContent = '';
+    modal.style.display = 'flex';
+
+    function closeModal() {
+        modal.style.display = 'none';
+        createBtn.onclick = null;
+        cancelBtn.onclick = null;
+    }
+
+    cancelBtn.onclick = () => {
+        closeModal();
+    };
+    createBtn.onclick = () => {
+        const gameName = gameNameInput.value.trim();
+        const player1Name = player1Input.value.trim();
+        const player2Name = player2Input.value.trim();
+        if (!gameName || !player1Name || !player2Name) {
+            errorDiv.textContent = 'All fields are required.';
+            return;
+        }
+        closeModal();
+        onCreate(gameName, player1Name, player2Name);
     };
 }
 
@@ -417,19 +451,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load from storage or start with one game
     loadGamesFromStorage();
     if (games.length === 0) {
-        games.push(createNewGame());
-        currentGameIndex = 0;
-    }
-    updateGameSelectUI();
-    initPlayersAndUI(games[currentGameIndex]);
-
-    newGameBtn.onclick = () => {
-        saveCurrentGameState();
-        games.push(createNewGame());
-        currentGameIndex = games.length - 1;
+        // Use modal for first game
+        showNewGameModal((gameName, player1Name, player2Name) => {
+            games.push(createNewGameWithNames(gameName, player1Name, player2Name));
+            currentGameIndex = 0;
+            updateGameSelectUI();
+            initPlayersAndUI(games[currentGameIndex]);
+            saveGamesToStorage();
+        });
+    } else {
         updateGameSelectUI();
         initPlayersAndUI(games[currentGameIndex]);
-        saveGamesToStorage();
+    }
+    newGameBtn.onclick = () => {
+        saveCurrentGameState();
+        showNewGameModal((gameName, player1Name, player2Name) => {
+            games.push(createNewGameWithNames(gameName, player1Name, player2Name));
+            currentGameIndex = games.length - 1;
+            updateGameSelectUI();
+            initPlayersAndUI(games[currentGameIndex]);
+            saveGamesToStorage();
+        });
     };
     gameSelect.onchange = (e) => {
         saveCurrentGameState();
