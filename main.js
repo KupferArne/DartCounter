@@ -654,6 +654,7 @@ function attachMainButtonHandlers() {
     const gameSelect = document.getElementById('gameSelect');
     const deleteGameBtn = document.getElementById('deleteGameBtn');
     const gameSettingsBtn = document.getElementById('gameSettingsBtn');
+
     newGameBtn.onclick = () => {
         saveCurrentGameState();
         showNewGameModal((gameName, player1Name, player2Name, settings) => {
@@ -740,33 +741,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.selectMultiplier = selectMultiplier;
 
     overlayDebugSVG();
-
-    // Game settings button
-    const gameSettingsBtn = document.getElementById('gameSettingsBtn');
-    gameSettingsBtn.onclick = () => {
-        // Show settings modal with current game settings
-        const currentSettings = games[currentGameIndex].settings || defaultGameSettings;
-        showGameSettingsModal((newSettings) => {
-            // Apply settings to current game
-            const game = games[currentGameIndex];
-            game.settings = { ...newSettings };
-
-            // If starting score changed, reset player scores
-            if (newSettings.startingScore !== game.player1.score &&
-                (game.player1.history.length === 0 && game.player2.history.length === 0)) {
-                game.player1.score = newSettings.startingScore;
-                game.player2.score = newSettings.startingScore;
-                window._player1.score = newSettings.startingScore;
-                window._player2.score = newSettings.startingScore;
-                window._player1.updateDisplay();
-                window._player2.updateDisplay();
-            }
-
-            // Update match info display
-            updateMatchInfo();
-            saveGamesToStorage();
-        }, currentSettings);
-    };
 });
 
 // Add victory modal function
@@ -891,10 +865,12 @@ function showGameSettingsModal(onSave, initialSettings = defaultGameSettings) {
 // Update match info display
 function updateMatchInfo() {
     const game = games[currentGameIndex];
+
     document.getElementById('currentSet').textContent = game.currentSet;
     document.getElementById('totalSets').textContent = game.settings.setsToWin;
     document.getElementById('currentLeg').textContent = game.currentLeg;
     document.getElementById('totalLegs').textContent = game.settings.legsToWin;
+
     let checkoutText;
     switch (game.settings.checkoutType) {
         case 'double':
@@ -908,6 +884,7 @@ function updateMatchInfo() {
             break;
     }
     document.getElementById('checkoutMode').textContent = checkoutText;
+
     updateLegsSetsDisplay();
 }
 
