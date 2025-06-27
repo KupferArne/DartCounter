@@ -39,9 +39,24 @@ class Player {
             return;
         }
         const points = this.selectedNumber * this.currentMultiplier;
+        const settings = getCurrentGameSettings();
         if (this.score - points < 0) {
             alert('Invalid score! Cannot go below 0.');
             return;
+        }
+        if (this.score - points === 0) {
+            let validCheckout = false;
+            if (settings.checkoutType === 'double') {
+                validCheckout = (this.currentMultiplier === 2);
+            } else if (settings.checkoutType === 'master') {
+                validCheckout = (this.currentMultiplier === 2 || this.currentMultiplier === 3);
+            } else {
+                validCheckout = true;
+            }
+            if (!validCheckout) {
+                alert('Checkout must be a ' + (settings.checkoutType === 'double' ? 'Double' : 'Double or Triple') + '!');
+                return;
+            }
         }
         this.score -= points;
         this.history.push(points);
@@ -50,13 +65,52 @@ class Player {
         this.updateDisplay();
         this.updateCurrentThrowDisplay();
 
-        // Check for victory
-        if (this.score === 0) {
-            // Get player number (1 or 2)
-            const playerNumber = this === window._player1 ? 1 : 2;
-            const playerName = document.getElementById(`player${playerNumber}Name`).textContent;
-            showVictoryModal(playerName, playerNumber);
+        if (this.score > 0) return;
+
+        const game = games[currentGameIndex];
+        const isP1 = (this === window._player1);
+        const player = isP1 ? game.player1 : game.player2;
+        const opponent = isP1 ? game.player2 : game.player1;
+        player.legsWon = (player.legsWon || 0) + 1;
+        let legWin = false, setWin = false, matchWin = false;
+        if (player.legsWon >= settings.legsToWin) {
+            player.legsWon = 0;
+            player.setsWon = (player.setsWon || 0) + 1;
+            setWin = true;
+            if (player.setsWon >= settings.setsToWin) {
+                matchWin = true;
+            }
         }
+        updateMatchInfo();
+        saveCurrentGameState();
+        saveGamesToStorage();
+        if (matchWin) {
+            showVictoryModal(isP1 ? game.player1Name : game.player2Name, isP1 ? 1 : 2);
+            game.completed = true;
+            game.winner = isP1 ? 1 : 2;
+            saveGamesToStorage();
+            return;
+        }
+        if (setWin) {
+            game.currentSet = (game.currentSet || 1) + 1;
+            game.currentLeg = 1;
+            game.player1.legsWon = 0;
+            game.player2.legsWon = 0;
+        } else {
+            game.currentLeg = (game.currentLeg || 1) + 1;
+        }
+        game.player1.score = settings.startingScore;
+        game.player2.score = settings.startingScore;
+        window._player1.score = settings.startingScore;
+        window._player2.score = settings.startingScore;
+        window._player1.history = [];
+        window._player2.history = [];
+        window._player1.updateDisplay();
+        window._player2.updateDisplay();
+        updateMatchInfo();
+        saveCurrentGameState();
+        saveGamesToStorage();
+        alert((isP1 ? game.player1Name : game.player2Name) + ' wins the leg!');
     }
 
     undoLast() {
@@ -233,8 +287,73 @@ function makeDebugCircle(cx, cy, r, color) {
 
 let selectedMultiplier = { 1: 1, 2: 1 };
 
+// --- Turn-based state ---
+let currentTurn = 1; // 1 or 2
+let throwsThisTurn = 0; // 0-2
+
+function switchTurn() {
+    throwsThisTurn = 0;
+    currentTurn = currentTurn === 1 ? 2 : 1;
+    updateNumberGrid(1);
+    updateNumberGrid(2);
+    updateMultiplierButtons(1);
+    updateMultiplierButtons(2);
+    updateActivePlayerHighlight();
+}
+
+function updateActivePlayerHighlight() {
+    // Optional: visually highlight the active player section
+    const p1Section = document.querySelector('.player-section:nth-of-type(1)');
+    const p2Section = document.querySelector('.player-section:nth-of-type(2)');
+    if (p1Section && p2Section) {
+        if (currentTurn === 1) {
+            p1Section.classList.add('active-player');
+            p2Section.classList.remove('active-player');
+        } else {
+            p2Section.classList.add('active-player');
+            p1Section.classList.remove('active-player');
+        }
+    }
+}
+
+function updateMultiplierButtons(playerNum) {
+    const btns = document.querySelectorAll(`#multiplierButtons${playerNum} .multiplier`);
+    btns.forEach(btn => {
+        btn.disabled = (playerNum !== currentTurn);
+    });
+}
+
+// Patch updateNumberGrid to disable for inactive player
+function updateNumberGrid(playerNum) {
+    const grid = document.getElementById(`numberGrid${playerNum}`);
+    if (!grid) return;
+    grid.innerHTML = '';
+    const isActive = (playerNum === currentTurn);
+    for (let i = 0; i <= 20; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = 'number-btn';
+        btn.onclick = () => handleNumberClick(playerNum, i);
+        btn.disabled = !isActive;
+        grid.appendChild(btn);
+    }
+    // Add 25 button
+    const btn25 = document.createElement('button');
+    btn25.textContent = '25';
+    btn25.className = 'number-btn';
+    if (selectedMultiplier[playerNum] === 3) {
+        btn25.classList.add('grayed');
+        btn25.disabled = true;
+    } else {
+        btn25.onclick = () => handleNumberClick(playerNum, 25);
+        btn25.disabled = !isActive;
+    }
+    grid.appendChild(btn25);
+}
+
+// Patch selectMultiplier to disable for inactive player
 function selectMultiplier(playerNum, multiplier) {
-    // If already selected, unselect (return to Single)
+    if (playerNum !== currentTurn) return; // Only active player can select
     if (selectedMultiplier[playerNum] === multiplier) {
         selectedMultiplier[playerNum] = 1;
     } else {
@@ -253,47 +372,51 @@ function selectMultiplier(playerNum, multiplier) {
     updateNumberGrid(playerNum);
 }
 
-function updateNumberGrid(playerNum) {
-    const grid = document.getElementById(`numberGrid${playerNum}`);
-    if (!grid) return;
-    grid.innerHTML = '';
-    for (let i = 0; i <= 20; i++) {
-        const btn = document.createElement('button');
-        btn.textContent = i;
-        btn.className = 'number-btn';
-        btn.onclick = () => handleNumberClick(playerNum, i);
-        grid.appendChild(btn);
-    }
-    // Add 25 button
-    const btn25 = document.createElement('button');
-    btn25.textContent = '25';
-    btn25.className = 'number-btn';
-    if (selectedMultiplier[playerNum] === 3) {
-        btn25.classList.add('grayed');
-        btn25.disabled = true;
-    } else {
-        btn25.onclick = () => handleNumberClick(playerNum, 25);
-    }
-    grid.appendChild(btn25);
-}
-
+// Patch handleNumberClick to enforce turn and throw count
 function handleNumberClick(playerNum, number) {
+    if (playerNum !== currentTurn) return; // Only active player can throw
     const player = playerNum === 1 ? window._player1 : window._player2;
     player.setNumber(number, selectedMultiplier[playerNum]);
     player.confirmThrow(); // Auto-confirm
+    throwsThisTurn++;
+    if (throwsThisTurn >= 3) {
+        switchTurn();
+    } else {
+        updateNumberGrid(playerNum); // Refresh to keep disabled state
+    }
 }
 
 // Multi-game management
 let games = [];
 let currentGameIndex = 0;
+// Default game settings
+const defaultGameSettings = {
+    startingScore: 501,
+    legsToWin: 3,
+    setsToWin: 1,
+    checkoutType: 'double' // 'double', 'master', or 'any'
+};
 
-function createNewGameWithNames(gameName, player1Name, player2Name) {
+function createNewGameWithNames(gameName, player1Name, player2Name, settings = defaultGameSettings) {
     return {
         gameName,
         player1Name,
         player2Name,
-        player1: { score: 501, history: [] },
-        player2: { score: 501, history: [] },
+        player1: {
+            score: settings.startingScore,
+            history: [],
+            legsWon: 0,
+            setsWon: 0
+        },
+        player2: {
+            score: settings.startingScore,
+            history: [],
+            legsWon: 0,
+            setsWon: 0
+        },
+        settings: { ...settings },
+        currentLeg: 1,
+        currentSet: 1,
         completed: false,
         winner: null
     };
@@ -305,6 +428,10 @@ function showNewGameModal(onCreate) {
     const gameNameInput = document.getElementById('modalGameName');
     const player1Input = document.getElementById('modalPlayer1Name');
     const player2Input = document.getElementById('modalPlayer2Name');
+    const startingScoreSelect = document.getElementById('modalStartingScore');
+    const legsToWinInput = document.getElementById('modalLegsToWin');
+    const setsToWinInput = document.getElementById('modalSetsToWin');
+    const checkoutTypeSelect = document.getElementById('modalCheckoutType');
     const errorDiv = document.getElementById('modalError');
     const cancelBtn = document.getElementById('modalCancelBtn');
     const createBtn = document.getElementById('modalCreateBtn');
@@ -313,13 +440,31 @@ function showNewGameModal(onCreate) {
     gameNameInput.value = '';
     player1Input.value = '';
     player2Input.value = '';
+    startingScoreSelect.value = '501';
+    legsToWinInput.value = '3';
+    setsToWinInput.value = '1';
+    checkoutTypeSelect.value = 'double';
     errorDiv.textContent = '';
     modal.style.display = 'flex';
+
+    // Allow closing modal by clicking background or pressing ESC
+    function onModalBgClick(e) {
+        if (e.target === modal) closeModal();
+    }
+    function onEscKey(e) {
+        if (e.key === 'Escape') closeModal();
+    }
+    modal.addEventListener('mousedown', onModalBgClick);
+    document.addEventListener('keydown', onEscKey);
 
     function closeModal() {
         modal.style.display = 'none';
         createBtn.onclick = null;
         cancelBtn.onclick = null;
+        modal.removeEventListener('mousedown', onModalBgClick);
+        document.removeEventListener('keydown', onEscKey);
+        // Re-attach main button handlers
+        attachMainButtonHandlers();
     }
 
     cancelBtn.onclick = () => {
@@ -329,25 +474,42 @@ function showNewGameModal(onCreate) {
         const gameName = gameNameInput.value.trim();
         const player1Name = player1Input.value.trim();
         const player2Name = player2Input.value.trim();
+        const startingScore = parseInt(startingScoreSelect.value);
+        const legsToWin = parseInt(legsToWinInput.value);
+        const setsToWin = parseInt(setsToWinInput.value);
+        const checkoutType = checkoutTypeSelect.value;
         if (!gameName || !player1Name || !player2Name) {
             errorDiv.textContent = 'All fields are required.';
             return;
         }
+        if (legsToWin < 1 || legsToWin > 9) {
+            errorDiv.textContent = 'Legs must be between 1 and 9.';
+            return;
+        }
+        if (setsToWin < 1 || setsToWin > 9) {
+            errorDiv.textContent = 'Sets must be between 1 and 9.';
+            return;
+        }
         closeModal();
-        onCreate(gameName, player1Name, player2Name);
+        onCreate(gameName, player1Name, player2Name, {
+            startingScore,
+            legsToWin,
+            setsToWin,
+            checkoutType
+        });
     };
 }
 
 function saveCurrentGameState() {
     if (games.length === 0) return;
-    games[currentGameIndex].player1 = {
-        score: window._player1.score,
-        history: [...window._player1.history],
-    };
-    games[currentGameIndex].player2 = {
-        score: window._player2.score,
-        history: [...window._player2.history],
-    };
+    const game = games[currentGameIndex];
+
+    // Save player stats
+    game.player1.score = window._player1.score;
+    game.player1.history = [...window._player1.history];
+
+    game.player2.score = window._player2.score;
+    game.player2.history = [...window._player2.history];
 }
 
 function loadGameState(index) {
@@ -418,6 +580,9 @@ function initPlayersAndUI(gameState) {
         _player2.history = [...gameState.player2.history];
         _player1.updateDisplay();
         _player2.updateDisplay();
+
+        // Update match info display
+        updateMatchInfo();
     }
     // Reset multipliers
     selectedMultiplier = { 1: 1, 2: 1 };
@@ -472,37 +637,33 @@ function initPlayersAndUI(gameState) {
     // Set player names
     document.getElementById('player1Name').textContent = gameState.player1Name || 'Player 1';
     document.getElementById('player2Name').textContent = gameState.player2Name || 'Player 2';
+    currentTurn = 1;
+    throwsThisTurn = 0;
+    updateActivePlayerHighlight();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Multi-game UI
+// Defensive: always render number buttons if missing
+function ensureNumberGrids() {
+    if (!document.getElementById('numberGrid1').children.length) updateNumberGrid(1);
+    if (!document.getElementById('numberGrid2').children.length) updateNumberGrid(2);
+}
+
+// Attach main button handlers robustly
+function attachMainButtonHandlers() {
     const newGameBtn = document.getElementById('newGameBtn');
     const gameSelect = document.getElementById('gameSelect');
     const deleteGameBtn = document.getElementById('deleteGameBtn');
+    const gameSettingsBtn = document.getElementById('gameSettingsBtn');
 
-    // Load from storage or start with one game
-    loadGamesFromStorage();
-    if (games.length === 0) {
-        // Use modal for first game
-        showNewGameModal((gameName, player1Name, player2Name) => {
-            games.push(createNewGameWithNames(gameName, player1Name, player2Name));
-            currentGameIndex = 0;
-            updateGameSelectUI();
-            initPlayersAndUI(games[currentGameIndex]);
-            saveGamesToStorage();
-        });
-    } else {
-        updateGameSelectUI();
-        initPlayersAndUI(games[currentGameIndex]);
-    }
     newGameBtn.onclick = () => {
         saveCurrentGameState();
-        showNewGameModal((gameName, player1Name, player2Name) => {
-            games.push(createNewGameWithNames(gameName, player1Name, player2Name));
+        showNewGameModal((gameName, player1Name, player2Name, settings) => {
+            games.push(createNewGameWithNames(gameName, player1Name, player2Name, settings));
             currentGameIndex = games.length - 1;
             updateGameSelectUI();
             initPlayersAndUI(games[currentGameIndex]);
             saveGamesToStorage();
+            ensureNumberGrids();
         });
     };
     gameSelect.onchange = (e) => {
@@ -510,6 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentGameIndex = parseInt(gameSelect.value);
         initPlayersAndUI(games[currentGameIndex]);
         saveGamesToStorage();
+        ensureNumberGrids();
     };
     deleteGameBtn.onclick = () => {
         if (games.length === 1) {
@@ -522,8 +684,51 @@ document.addEventListener('DOMContentLoaded', () => {
         updateGameSelectUI();
         initPlayersAndUI(games[currentGameIndex]);
         saveGamesToStorage();
+        ensureNumberGrids();
     };
+    // Settings button
+    gameSettingsBtn.onclick = () => {
+        const currentSettings = games[currentGameIndex].settings || defaultGameSettings;
+        showGameSettingsModal((newSettings) => {
+            const game = games[currentGameIndex];
+            game.settings = { ...newSettings };
+            if (newSettings.startingScore !== game.player1.score &&
+                (game.player1.history.length === 0 && game.player2.history.length === 0)) {
+                game.player1.score = newSettings.startingScore;
+                game.player2.score = newSettings.startingScore;
+                window._player1.score = newSettings.startingScore;
+                window._player2.score = newSettings.startingScore;
+                window._player1.updateDisplay();
+                window._player2.updateDisplay();
+            }
+            updateMatchInfo();
+            saveGamesToStorage();
+        }, currentSettings);
+    };
+}
 
+// Patch DOMContentLoaded to always attach handlers and ensure number grids
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Multi-game UI
+    attachMainButtonHandlers();
+    // Load from storage or start with one game
+    loadGamesFromStorage();
+    if (games.length === 0) {
+        // Use modal for first game
+        showNewGameModal((gameName, player1Name, player2Name, settings) => {
+            games.push(createNewGameWithNames(gameName, player1Name, player2Name, settings));
+            currentGameIndex = 0;
+            updateGameSelectUI();
+            initPlayersAndUI(games[currentGameIndex]);
+            saveGamesToStorage();
+            ensureNumberGrids();
+        });
+    } else {
+        updateGameSelectUI();
+        initPlayersAndUI(games[currentGameIndex]);
+        ensureNumberGrids();
+    }
     // Confirm throw
     window.confirmThrow = (playerNum) => {
         (playerNum === 1 ? _player1 : _player2).confirmThrow();
@@ -603,4 +808,100 @@ function showVictoryModal(playerName, playerNumber) {
     games[currentGameIndex].completed = true;
     games[currentGameIndex].winner = playerNumber;
     saveGamesToStorage();
+}
+
+// Add function to show settings modal
+function showGameSettingsModal(onSave, initialSettings = defaultGameSettings) {
+    const modal = document.getElementById('gameSettingsModal');
+    const startingScoreSelect = document.getElementById('startingScore');
+    const legsToWinInput = document.getElementById('legsToWin');
+    const setsToWinInput = document.getElementById('setsToWin');
+    const checkoutTypeSelect = document.getElementById('checkoutType');
+    const errorDiv = document.getElementById('settingsError');
+    const cancelBtn = document.getElementById('settingsCancelBtn');
+    const saveBtn = document.getElementById('settingsSaveBtn');
+
+    // Set initial values
+    startingScoreSelect.value = initialSettings.startingScore;
+    legsToWinInput.value = initialSettings.legsToWin;
+    setsToWinInput.value = initialSettings.setsToWin;
+    checkoutTypeSelect.value = initialSettings.checkoutType;
+    errorDiv.textContent = '';
+    modal.style.display = 'flex';
+
+    function closeModal() {
+        modal.style.display = 'none';
+        saveBtn.onclick = null;
+        cancelBtn.onclick = null;
+    }
+
+    cancelBtn.onclick = () => {
+        closeModal();
+    };
+
+    saveBtn.onclick = () => {
+        const settings = {
+            startingScore: parseInt(startingScoreSelect.value),
+            legsToWin: parseInt(legsToWinInput.value),
+            setsToWin: parseInt(setsToWinInput.value),
+            checkoutType: checkoutTypeSelect.value
+        };
+
+        // Validate inputs
+        if (settings.legsToWin < 1 || settings.legsToWin > 9) {
+            errorDiv.textContent = 'Legs must be between 1 and 9.';
+            return;
+        }
+        if (settings.setsToWin < 1 || settings.setsToWin > 9) {
+            errorDiv.textContent = 'Sets must be between 1 and 9.';
+            return;
+        }
+
+        closeModal();
+        onSave(settings);
+    };
+}
+
+// Update match info display
+function updateMatchInfo() {
+    const game = games[currentGameIndex];
+
+    document.getElementById('currentSet').textContent = game.currentSet;
+    document.getElementById('totalSets').textContent = game.settings.setsToWin;
+    document.getElementById('currentLeg').textContent = game.currentLeg;
+    document.getElementById('totalLegs').textContent = game.settings.legsToWin;
+
+    let checkoutText;
+    switch (game.settings.checkoutType) {
+        case 'double':
+            checkoutText = 'Double';
+            break;
+        case 'master':
+            checkoutText = 'Master (D/T)';
+            break;
+        case 'any':
+            checkoutText = 'Any';
+            break;
+    }
+    document.getElementById('checkoutMode').textContent = checkoutText;
+
+    updateLegsSetsDisplay();
+}
+
+// Helper: get current game settings
+function getCurrentGameSettings() {
+    return games[currentGameIndex]?.settings || defaultGameSettings;
+}
+
+// Helper: update legs/sets display (add to updateMatchInfo)
+function updateLegsSetsDisplay() {
+    const game = games[currentGameIndex];
+    if (!game) return;
+    // Add or update legs/sets display for each player
+    let p1 = document.getElementById('player1Name');
+    let p2 = document.getElementById('player2Name');
+    if (p1 && p2) {
+        p1.innerHTML = `${game.player1Name} <span style='font-size:14px;color:#888;'>(Sets: ${game.player1.setsWon}, Legs: ${game.player1.legsWon})</span>`;
+        p2.innerHTML = `${game.player2Name} <span style='font-size:14px;color:#888;'>(Sets: ${game.player2.setsWon}, Legs: ${game.player2.legsWon})</span>`;
+    }
 } 

@@ -196,20 +196,83 @@
                 flex-wrap: wrap;
             }
         }
+
+        .active-player {
+            box-shadow: 0 0 16px 4px #4CAF50;
+            border-radius: 12px;
+            background: #eaffea;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
     </style>
 </head>
 
 <body>
+    <!-- Game Settings Modal -->
+    <div id="gameSettingsModal"
+        style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div
+            style="background:#fff; padding:32px 24px; border-radius:8px; max-width:90vw; width:400px; box-shadow:0 4px 16px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:16px;">
+            <h2 style="margin:0 0 8px 0;">Game Settings</h2>
+
+            <div style="margin-bottom:8px;">
+                <label for="startingScore">Starting Score:</label>
+                <select id="startingScore" style="width:100%; padding:8px; margin-top:4px;">
+                    <option value="501">501</option>
+                    <option value="301">301</option>
+                    <option value="701">701</option>
+                    <option value="170">170 (Practice)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom:8px;">
+                <label for="legsToWin">Legs to Win Set:</label>
+                <input id="legsToWin" type="number" min="1" max="9" value="3"
+                    style="width:100%; padding:8px; margin-top:4px;">
+            </div>
+
+            <div style="margin-bottom:8px;">
+                <label for="setsToWin">Sets to Win Match:</label>
+                <input id="setsToWin" type="number" min="1" max="9" value="1"
+                    style="width:100%; padding:8px; margin-top:4px;">
+            </div>
+
+            <div style="margin-bottom:8px;">
+                <label for="checkoutType">Checkout Type:</label>
+                <select id="checkoutType" style="width:100%; padding:8px; margin-top:4px;">
+                    <option value="double">Double Out (Standard)</option>
+                    <option value="master">Master Out (Double or Triple)</option>
+                    <option value="any">Any Out (Single, Double, or Triple)</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
+                <button id="settingsCancelBtn" style="background:#888; color:#fff; padding:8px 16px;">Cancel</button>
+                <button id="settingsSaveBtn" style="background:#4CAF50; color:#fff; padding:8px 16px;">Save</button>
+            </div>
+            <div id="settingsError" style="color:#f44336; font-size:14px; min-height:18px;"></div>
+        </div>
+    </div>
+
+    <!-- Game controls -->
     <div class="game-controls">
         <button id="newGameBtn">New Game</button>
         <label for="gameSelect" style="color: #fff;">Active Game:</label>
         <select id="gameSelect"></select>
         <button id="deleteGameBtn">Delete Game</button>
+        <button id="gameSettingsBtn" style="background-color: #2196F3;">Settings</button>
         <button id="installBtn" style="display: none; background-color: #FF9800;" onclick="installPWA()">Install
             App</button>
     </div>
 
     <h1>Dart Counter</h1>
+
+    <!-- Match info bar -->
+    <div id="matchInfoBar"
+        style="background:#333; color:#fff; padding:10px; border-radius:4px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+        <div>Set: <span id="currentSet">1</span>/<span id="totalSets">1</span></div>
+        <div>Leg: <span id="currentLeg">1</span>/<span id="totalLegs">3</span></div>
+        <div>Out: <span id="checkoutMode">Double</span></div>
+    </div>
 
     <div id="newGameModal"
         style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
@@ -222,6 +285,33 @@
                     style="width:100%; padding:8px; margin-top:4px;"></label>
             <label>Player 2 Name:<br><input id="modalPlayer2Name" type="text"
                     style="width:100%; padding:8px; margin-top:4px;"></label>
+            <div style="margin-bottom:8px;">
+                <label for="modalStartingScore">Starting Score:</label>
+                <select id="modalStartingScore" style="width:100%; padding:8px; margin-top:4px;">
+                    <option value="501">501</option>
+                    <option value="301">301</option>
+                    <option value="701">701</option>
+                    <option value="170">170 (Practice)</option>
+                </select>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label for="modalLegsToWin">Legs to Win Set:</label>
+                <input id="modalLegsToWin" type="number" min="1" max="9" value="3"
+                    style="width:100%; padding:8px; margin-top:4px;">
+            </div>
+            <div style="margin-bottom:8px;">
+                <label for="modalSetsToWin">Sets to Win Match:</label>
+                <input id="modalSetsToWin" type="number" min="1" max="9" value="1"
+                    style="width:100%; padding:8px; margin-top:4px;">
+            </div>
+            <div style="margin-bottom:8px;">
+                <label for="modalCheckoutType">Checkout Type:</label>
+                <select id="modalCheckoutType" style="width:100%; padding:8px; margin-top:4px;">
+                    <option value="double">Double Out (Standard)</option>
+                    <option value="master">Master Out (Double or Triple)</option>
+                    <option value="any">Any Out (Single, Double, or Triple)</option>
+                </select>
+            </div>
             <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
                 <button id="modalCancelBtn" style="background:#888; color:#fff;">Cancel</button>
                 <button id="modalCreateBtn" style="background:#4CAF50; color:#fff;">Create</button>
