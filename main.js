@@ -302,18 +302,15 @@ function switchTurn() {
 }
 
 function updateActivePlayerHighlight() {
-    // Optional: visually highlight the active player section
-    const p1Section = document.querySelector('.player-section:nth-of-type(1)');
-    const p2Section = document.querySelector('.player-section:nth-of-type(2)');
-    if (p1Section && p2Section) {
-        if (currentTurn === 1) {
-            p1Section.classList.add('active-player');
-            p2Section.classList.remove('active-player');
+    // Visually highlight the active player section
+    const playerSections = document.querySelectorAll('.player-section');
+    playerSections.forEach((section, idx) => {
+        if (idx === currentTurn - 1) {
+            section.classList.add('active-player');
         } else {
-            p2Section.classList.add('active-player');
-            p1Section.classList.remove('active-player');
+            section.classList.remove('active-player');
         }
-    }
+    });
 }
 
 function updateMultiplierButtons(playerNum) {
@@ -324,7 +321,8 @@ function updateMultiplierButtons(playerNum) {
 }
 
 // Patch updateNumberGrid to disable for inactive player
-function updateNumberGrid(playerNum) {
+const originalUpdateNumberGrid = updateNumberGrid;
+updateNumberGrid = function (playerNum) {
     const grid = document.getElementById(`numberGrid${playerNum}`);
     if (!grid) return;
     grid.innerHTML = '';
@@ -352,7 +350,8 @@ function updateNumberGrid(playerNum) {
 }
 
 // Patch selectMultiplier to disable for inactive player
-function selectMultiplier(playerNum, multiplier) {
+const originalSelectMultiplier = selectMultiplier;
+selectMultiplier = function (playerNum, multiplier) {
     if (playerNum !== currentTurn) return; // Only active player can select
     if (selectedMultiplier[playerNum] === multiplier) {
         selectedMultiplier[playerNum] = 1;
@@ -373,7 +372,8 @@ function selectMultiplier(playerNum, multiplier) {
 }
 
 // Patch handleNumberClick to enforce turn and throw count
-function handleNumberClick(playerNum, number) {
+const originalHandleNumberClick = handleNumberClick;
+handleNumberClick = function (playerNum, number) {
     if (playerNum !== currentTurn) return; // Only active player can throw
     const player = playerNum === 1 ? window._player1 : window._player2;
     player.setNumber(number, selectedMultiplier[playerNum]);
