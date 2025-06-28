@@ -308,6 +308,7 @@ function determineStartingPlayer() {
     return Math.random() < 0.5 ? 1 : 2;
 }
 
+// Switch turn and force all UI updates
 function switchTurn() {
     currentTurn = currentTurn === 1 ? 2 : 1;
     throwsThisTurn = 0;
@@ -320,14 +321,12 @@ function switchTurn() {
     updateNumberGrid(2);
 }
 
+// Only gray out the waiting player
 function updateActivePlayerHighlight() {
     const p1Section = document.querySelector('.player-section:first-of-type');
     const p2Section = document.querySelector('.player-section:last-of-type');
-
-    // Remove all classes first
     p1Section.classList.remove('inactive-player');
     p2Section.classList.remove('inactive-player');
-
     if (currentTurn === 1) {
         p2Section.classList.add('inactive-player');
     } else {
@@ -335,6 +334,7 @@ function updateActivePlayerHighlight() {
     }
 }
 
+// Enable/disable multiplier buttons and submit button for each player
 function updateMultiplierButtons(playerNum) {
     const btns = document.querySelectorAll(`#multiplierButtons${playerNum} .multiplier`);
     btns.forEach(btn => {
@@ -345,7 +345,7 @@ function updateMultiplierButtons(playerNum) {
     if (submitBtn) submitBtn.disabled = (playerNum !== currentTurn);
 }
 
-// Original functions before patching
+// Enable/disable number buttons for each player
 function updateNumberGrid(playerNum) {
     const grid = document.getElementById(`numberGrid${playerNum}`);
     if (!grid) return;
@@ -376,33 +376,14 @@ function updateNumberGrid(playerNum) {
     if (submitBtn) submitBtn.disabled = !isActive;
 }
 
-function selectMultiplier(playerNum, multiplier) {
-    if (playerNum !== currentTurn) return; // Only active player can select
-    if (selectedMultiplier[playerNum] === multiplier) {
-        selectedMultiplier[playerNum] = 1;
-    } else {
-        selectedMultiplier[playerNum] = multiplier;
-    }
-    // Highlight selected button
-    const btns = document.querySelectorAll(`#multiplierButtons${playerNum} .multiplier`);
-    btns.forEach(btn => {
-        if (parseInt(btn.getAttribute('data-multiplier')) === selectedMultiplier[playerNum]) {
-            btn.classList.add('selected');
-        } else {
-            btn.classList.remove('selected');
-        }
-    });
-    // Update number grid (for graying out 25)
-    updateNumberGrid(playerNum);
-}
-
+// Only the current player can throw
 function handleNumberClick(playerNum, number) {
-    if (playerNum !== currentTurn) return; // Only active player can throw
+    if (playerNum !== currentTurn) return;
     const player = playerNum === 1 ? window._player1 : window._player2;
     player.setNumber(number, selectedMultiplier[playerNum]);
-    player.confirmThrow(); // Auto-confirm
+    player.confirmThrow();
     throwsThisTurn++;
-    updateNumberGrid(playerNum); // Refresh to keep disabled state
+    updateNumberGrid(playerNum);
 }
 
 // Multi-game management
@@ -947,7 +928,7 @@ function updateLegsSetsDisplay() {
     }
 }
 
-// Add submitTurn function
+// Only the current player can submit turn
 window.submitTurn = function (playerNum) {
     if (playerNum !== currentTurn) return;
     throwsThisTurn = 0;
