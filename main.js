@@ -325,14 +325,12 @@ function updateActivePlayerHighlight() {
     const p2Section = document.querySelector('.player-section:last-of-type');
 
     // Remove all classes first
-    p1Section.classList.remove('active-player', 'inactive-player');
-    p2Section.classList.remove('active-player', 'inactive-player');
+    p1Section.classList.remove('inactive-player');
+    p2Section.classList.remove('inactive-player');
 
     if (currentTurn === 1) {
-        p1Section.classList.add('active-player');
         p2Section.classList.add('inactive-player');
     } else {
-        p2Section.classList.add('active-player');
         p1Section.classList.add('inactive-player');
     }
 }
