@@ -340,6 +340,9 @@ function updateMultiplierButtons(playerNum) {
     btns.forEach(btn => {
         btn.disabled = (playerNum !== currentTurn);
     });
+    // Enable/disable submit button
+    const submitBtn = document.getElementById(`submitTurn${playerNum}`);
+    if (submitBtn) submitBtn.disabled = (playerNum !== currentTurn);
 }
 
 // Original functions before patching
@@ -368,6 +371,9 @@ function updateNumberGrid(playerNum) {
         btn25.disabled = !isActive;
     }
     grid.appendChild(btn25);
+    // Enable/disable submit button
+    const submitBtn = document.getElementById(`submitTurn${playerNum}`);
+    if (submitBtn) submitBtn.disabled = !isActive;
 }
 
 function selectMultiplier(playerNum, multiplier) {
@@ -396,11 +402,7 @@ function handleNumberClick(playerNum, number) {
     player.setNumber(number, selectedMultiplier[playerNum]);
     player.confirmThrow(); // Auto-confirm
     throwsThisTurn++;
-    if (throwsThisTurn >= 3) {
-        switchTurn();
-    } else {
-        updateNumberGrid(playerNum); // Refresh to keep disabled state
-    }
+    updateNumberGrid(playerNum); // Refresh to keep disabled state
 }
 
 // Multi-game management
@@ -943,4 +945,11 @@ function updateLegsSetsDisplay() {
         p1.innerHTML = `${game.player1Name} <span style='font-size:14px;color:#888;'>(Sets: ${game.player1.setsWon}, Legs: ${game.player1.legsWon})</span>`;
         p2.innerHTML = `${game.player2Name} <span style='font-size:14px;color:#888;'>(Sets: ${game.player2.setsWon}, Legs: ${game.player2.legsWon})</span>`;
     }
-} 
+}
+
+// Add submitTurn function
+window.submitTurn = function (playerNum) {
+    if (playerNum !== currentTurn) return;
+    throwsThisTurn = 0;
+    switchTurn();
+}; 
