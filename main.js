@@ -933,4 +933,119 @@ window.submitTurn = function (playerNum) {
     if (playerNum !== currentTurn) return;
     throwsThisTurn = 0;
     switchTurn();
-}; 
+};
+
+// --- Robust Turn Logic and Visual Feedback Fix ---
+
+// Only the current player can select multiplier
+function selectMultiplier(playerNum, multiplier) {
+    if (playerNum !== currentTurn) return;
+    if (selectedMultiplier[playerNum] === multiplier) {
+        selectedMultiplier[playerNum] = 1;
+    } else {
+        selectedMultiplier[playerNum] = multiplier;
+    }
+    // Highlight selected button
+    const btns = document.querySelectorAll(`#multiplierButtons${playerNum} .multiplier`);
+    btns.forEach(btn => {
+        if (parseInt(btn.getAttribute('data-multiplier')) === selectedMultiplier[playerNum]) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+    // Update number grid (for graying out 25)
+    updateNumberGrid(playerNum);
+}
+
+// Only the current player can throw
+function handleNumberClick(playerNum, number) {
+    if (playerNum !== currentTurn) return;
+    const player = playerNum === 1 ? window._player1 : window._player2;
+    player.setNumber(number, selectedMultiplier[playerNum]);
+    player.confirmThrow();
+    throwsThisTurn++;
+    updateNumberGrid(playerNum);
+}
+
+// Only the current player can submit turn
+window.submitTurn = function (playerNum) {
+    if (playerNum !== currentTurn) return;
+    throwsThisTurn = 0;
+    switchTurn();
+    // Force all UI updates after switching
+    updateActivePlayerHighlight();
+    updateMultiplierButtons(1);
+    updateMultiplierButtons(2);
+    updateNumberGrid(1);
+    updateNumberGrid(2);
+};
+
+// Switch turn and force all UI updates
+function switchTurn() {
+    currentTurn = currentTurn === 1 ? 2 : 1;
+    throwsThisTurn = 0;
+    selectedMultiplier[1] = 1;
+    selectedMultiplier[2] = 1;
+    updateActivePlayerHighlight();
+    updateMultiplierButtons(1);
+    updateMultiplierButtons(2);
+    updateNumberGrid(1);
+    updateNumberGrid(2);
+}
+
+// Only gray out the waiting player
+function updateActivePlayerHighlight() {
+    const p1Section = document.querySelector('.player-section:first-of-type');
+    const p2Section = document.querySelector('.player-section:last-of-type');
+    p1Section.classList.remove('inactive-player');
+    p2Section.classList.remove('inactive-player');
+    if (currentTurn === 1) {
+        p2Section.classList.add('inactive-player');
+    } else {
+        p1Section.classList.add('inactive-player');
+    }
+}
+
+// Enable/disable multiplier buttons and submit button for each player
+function updateMultiplierButtons(playerNum) {
+    const btns = document.querySelectorAll(`#multiplierButtons${playerNum} .multiplier`);
+    btns.forEach(btn => {
+        btn.disabled = (playerNum !== currentTurn);
+    });
+    // Enable/disable submit button
+    const submitBtn = document.getElementById(`submitTurn${playerNum}`);
+    if (submitBtn) submitBtn.disabled = (playerNum !== currentTurn);
+}
+
+// Enable/disable number buttons for each player
+function updateNumberGrid(playerNum) {
+    const grid = document.getElementById(`numberGrid${playerNum}`);
+    if (!grid) return;
+    grid.innerHTML = '';
+    const isActive = (playerNum === currentTurn);
+    for (let i = 0; i <= 20; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = 'number-btn';
+        btn.onclick = () => handleNumberClick(playerNum, i);
+        btn.disabled = !isActive;
+        grid.appendChild(btn);
+    }
+    // Add 25 button
+    const btn25 = document.createElement('button');
+    btn25.textContent = '25';
+    btn25.className = 'number-btn';
+    if (selectedMultiplier[playerNum] === 3) {
+        btn25.classList.add('grayed');
+        btn25.disabled = true;
+    } else {
+        btn25.onclick = () => handleNumberClick(playerNum, 25);
+        btn25.disabled = !isActive;
+    }
+    grid.appendChild(btn25);
+    // Enable/disable submit button
+    const submitBtn = document.getElementById(`submitTurn${playerNum}`);
+    if (submitBtn) submitBtn.disabled = !isActive;
+}
+// --- End Robust Turn Logic and Visual Feedback Fix --- 
