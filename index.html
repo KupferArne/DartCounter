@@ -198,10 +198,30 @@
         }
 
         .active-player {
-            box-shadow: 0 0 16px 4px #4CAF50;
+            border: 3px solid #4CAF50;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f0fff0 0%, #e8f5e8 100%);
+            position: relative;
+        }
+
+        .active-player::before {
+            content: "🎯 YOUR TURN";
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 4px 12px;
             border-radius: 12px;
-            background: #eaffea;
-            transition: background 0.3s, box-shadow 0.3s;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .inactive-player {
+            opacity: 0.7;
+            filter: grayscale(30%);
         }
     </style>
 </head>
@@ -397,8 +417,7 @@
                     }
                     deferredPrompt = null;
                 });
-            }
-        }
+           }
     </script>
     <script defer src="main.js"></script>
 </body>
