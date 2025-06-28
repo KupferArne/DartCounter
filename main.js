@@ -294,23 +294,26 @@ let throwsThisTurn = 0; // 0-2
 function switchTurn() {
     throwsThisTurn = 0;
     currentTurn = currentTurn === 1 ? 2 : 1;
-    updateNumberGrid(1);
-    updateNumberGrid(2);
+    selectedMultiplier[1] = 1;
+    selectedMultiplier[2] = 1;
+    updateActivePlayerHighlight();
     updateMultiplierButtons(1);
     updateMultiplierButtons(2);
-    updateActivePlayerHighlight();
+    updateNumberGrid(1);
+    updateNumberGrid(2);
 }
 
 function updateActivePlayerHighlight() {
-    // Visually highlight the active player section
-    const playerSections = document.querySelectorAll('.player-section');
-    playerSections.forEach((section, idx) => {
-        if (idx === currentTurn - 1) {
-            section.classList.add('active-player');
-        } else {
-            section.classList.remove('active-player');
-        }
-    });
+    const p1Section = document.querySelector('.player-section:first-of-type');
+    const p2Section = document.querySelector('.player-section:last-of-type');
+
+    if (currentTurn === 1) {
+        p1Section.classList.add('active-player');
+        p2Section.classList.remove('active-player');
+    } else {
+        p2Section.classList.add('active-player');
+        p1Section.classList.remove('active-player');
+    }
 }
 
 function updateMultiplierButtons(playerNum) {
@@ -320,9 +323,8 @@ function updateMultiplierButtons(playerNum) {
     });
 }
 
-// Patch updateNumberGrid to disable for inactive player
-const originalUpdateNumberGrid = updateNumberGrid;
-updateNumberGrid = function (playerNum) {
+// Original functions before patching
+function updateNumberGrid(playerNum) {
     const grid = document.getElementById(`numberGrid${playerNum}`);
     if (!grid) return;
     grid.innerHTML = '';
@@ -349,9 +351,7 @@ updateNumberGrid = function (playerNum) {
     grid.appendChild(btn25);
 }
 
-// Patch selectMultiplier to disable for inactive player
-const originalSelectMultiplier = selectMultiplier;
-selectMultiplier = function (playerNum, multiplier) {
+function selectMultiplier(playerNum, multiplier) {
     if (playerNum !== currentTurn) return; // Only active player can select
     if (selectedMultiplier[playerNum] === multiplier) {
         selectedMultiplier[playerNum] = 1;
@@ -371,9 +371,7 @@ selectMultiplier = function (playerNum, multiplier) {
     updateNumberGrid(playerNum);
 }
 
-// Patch handleNumberClick to enforce turn and throw count
-const originalHandleNumberClick = handleNumberClick;
-handleNumberClick = function (playerNum, number) {
+function handleNumberClick(playerNum, number) {
     if (playerNum !== currentTurn) return; // Only active player can throw
     const player = playerNum === 1 ? window._player1 : window._player2;
     player.setNumber(number, selectedMultiplier[playerNum]);
@@ -601,7 +599,9 @@ function initPlayersAndUI(gameState) {
         // We need to manually check for victory here since the original confirmThrow's 
         // victory check might not be triggered due to the patching
         if (previousScore > 0 && _player1.score === 0) {
-            showVictoryModal(document.getElementById('player1Name').textContent, 1);
+            const player1NameElement = document.getElementById('player1Name');
+            const player1Name = player1NameElement.textContent.split('(')[0].trim();
+            showVictoryModal(player1Name, 1);
         }
 
         saveCurrentGameState();
@@ -622,7 +622,9 @@ function initPlayersAndUI(gameState) {
         // We need to manually check for victory here since the original confirmThrow's 
         // victory check might not be triggered due to the patching
         if (previousScore > 0 && _player2.score === 0) {
-            showVictoryModal(document.getElementById('player2Name').textContent, 2);
+            const player2NameElement = document.getElementById('player2Name');
+            const player2Name = player2NameElement.textContent.split('(')[0].trim();
+            showVictoryModal(player2Name, 2);
         }
 
         saveCurrentGameState();
@@ -635,8 +637,8 @@ function initPlayersAndUI(gameState) {
         saveGamesToStorage();
     };
     // Set player names
-    document.getElementById('player1Name').textContent = gameState.player1Name || 'Player 1';
-    document.getElementById('player2Name').textContent = gameState.player2Name || 'Player 2';
+    document.getElementById('player1Name').innerHTML = `${gameState.player1Name || 'Player 1'} <span style='font-size:14px;color:#888;'>(Sets: ${gameState.player1.setsWon || 0}, Legs: ${gameState.player1.legsWon || 0})</span>`;
+    document.getElementById('player2Name').innerHTML = `${gameState.player2Name || 'Player 2'} <span style='font-size:14px;color:#888;'>(Sets: ${gameState.player2.setsWon || 0}, Legs: ${gameState.player2.legsWon || 0})</span>`;
     currentTurn = 1;
     throwsThisTurn = 0;
     updateActivePlayerHighlight();
