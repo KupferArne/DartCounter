@@ -107,6 +107,17 @@ class Player {
         window._player2.history = [];
         window._player1.updateDisplay();
         window._player2.updateDisplay();
+
+        // Reset turn-based state for new leg/set
+        throwsThisTurn = 0;
+        selectedMultiplier[1] = 1;
+        selectedMultiplier[2] = 1;
+        updateActivePlayerHighlight();
+        updateMultiplierButtons(1);
+        updateMultiplierButtons(2);
+        updateNumberGrid(1);
+        updateNumberGrid(2);
+
         updateMatchInfo();
         saveCurrentGameState();
         saveGamesToStorage();
@@ -291,9 +302,15 @@ let selectedMultiplier = { 1: 1, 2: 1 };
 let currentTurn = 1; // 1 or 2
 let throwsThisTurn = 0; // 0-2
 
+// Function to determine which player should start the match
+function determineStartingPlayer() {
+    // Randomly choose which player starts (like a coin toss)
+    return Math.random() < 0.5 ? 1 : 2;
+}
+
 function switchTurn() {
-    throwsThisTurn = 0;
     currentTurn = currentTurn === 1 ? 2 : 1;
+    throwsThisTurn = 0;
     selectedMultiplier[1] = 1;
     selectedMultiplier[2] = 1;
     updateActivePlayerHighlight();
@@ -307,12 +324,16 @@ function updateActivePlayerHighlight() {
     const p1Section = document.querySelector('.player-section:first-of-type');
     const p2Section = document.querySelector('.player-section:last-of-type');
 
+    // Remove all classes first
+    p1Section.classList.remove('active-player', 'inactive-player');
+    p2Section.classList.remove('active-player', 'inactive-player');
+
     if (currentTurn === 1) {
         p1Section.classList.add('active-player');
-        p2Section.classList.remove('active-player');
+        p2Section.classList.add('inactive-player');
     } else {
         p2Section.classList.add('active-player');
-        p1Section.classList.remove('active-player');
+        p1Section.classList.add('inactive-player');
     }
 }
 
@@ -416,7 +437,8 @@ function createNewGameWithNames(gameName, player1Name, player2Name, settings = d
         currentLeg: 1,
         currentSet: 1,
         completed: false,
-        winner: null
+        winner: null,
+        currentTurn: determineStartingPlayer()
     };
 }
 
@@ -508,6 +530,9 @@ function saveCurrentGameState() {
 
     game.player2.score = window._player2.score;
     game.player2.history = [...window._player2.history];
+
+    // Save current turn
+    game.currentTurn = currentTurn;
 }
 
 function loadGameState(index) {
@@ -639,7 +664,21 @@ function initPlayersAndUI(gameState) {
     // Set player names
     document.getElementById('player1Name').innerHTML = `${gameState.player1Name || 'Player 1'} <span style='font-size:14px;color:#888;'>(Sets: ${gameState.player1.setsWon || 0}, Legs: ${gameState.player1.legsWon || 0})</span>`;
     document.getElementById('player2Name').innerHTML = `${gameState.player2Name || 'Player 2'} <span style='font-size:14px;color:#888;'>(Sets: ${gameState.player2.setsWon || 0}, Legs: ${gameState.player2.legsWon || 0})</span>`;
-    currentTurn = 1;
+
+    // Determine starting player for new games or use existing turn for ongoing games
+    if (gameState.player1.history.length === 0 && gameState.player2.history.length === 0) {
+        // New game - determine starting player
+        currentTurn = determineStartingPlayer();
+        // Show who starts
+        const startingPlayerName = currentTurn === 1 ? (gameState.player1Name || 'Player 1') : (gameState.player2Name || 'Player 2');
+        setTimeout(() => {
+            alert(`${startingPlayerName} starts the match!`);
+        }, 100);
+    } else {
+        // Ongoing game - continue with current turn (default to 1 if not set)
+        currentTurn = gameState.currentTurn || 1;
+    }
+
     throwsThisTurn = 0;
     updateActivePlayerHighlight();
 }
