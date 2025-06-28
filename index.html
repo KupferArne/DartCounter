@@ -306,21 +306,20 @@
                 <label for="modalSetsToWin">Sets to Win Match:</label>
                 <input id="modalSetsToWin" type="number" min="1" max="9" value="1"
                     style="width:100%; padding:8px; margin-top:4px;">
-                }
-                <div style="margin-bottom:8px;">
-                    <label for="modalCheckoutType">Checkout Type:</label>
-                    <select id="modalCheckoutType" style="width:100%; padding:8px; margin-top:4px;">
-                        <option value="double">Double Out (Standard)</option>
-                        <option value="master">Master Out (Double or Triple)</option>
-                        <option value="any">Any Out (Single, Double, or Triple)</option>
-                    </select>
-                </div>
-                <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
-                    <button id="modalCancelBtn" style="background:#888; color:#fff;">Cancel</button>
-                    <button id="modalCreateBtn" style="background:#4CAF50; color:#fff;">Create</button>
-                </div>
-                <div id="modalError" style="color:#f44336; font-size:14px; min-height:18px;"></div>
             </div>
+            <div style="margin-bottom:8px;">
+                <label for="modalCheckoutType">Checkout Type:</label>
+                <select id="modalCheckoutType" style="width:100%; padding:8px; margin-top:4px;">
+                    <option value="double">Double Out (Standard)</option>
+                    <option value="master">Master Out (Double or Triple)</option>
+                    <option value="any">Any Out (Single, Double, or Triple)</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
+                <button id="modalCancelBtn" style="background:#888; color:#fff;">Cancel</button>
+                <button id="modalCreateBtn" style="background:#4CAF50; color:#fff;">Create</button>
+            </div>
+            <div id="modalError" style="color:#f44336; font-size:14px; min-height:18px;"></div>
         </div>
 
         <div class="player-section">
