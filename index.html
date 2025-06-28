@@ -198,9 +198,21 @@
         }
 
         .inactive-player {
-            opacity: 0.6;
-            filter: grayscale(40%);
+            opacity: 0.5;
+            filter: grayscale(80%);
+            position: relative;
+        }
+
+        .inactive-player::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(200, 200, 200, 0.5);
             pointer-events: none;
+            border-radius: 8px;
         }
 
         .inactive-player * {
